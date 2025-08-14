@@ -5,12 +5,20 @@ on:
     tags:
       - 'v*'
 
+# 显式声明所需权限
+permissions:
+  contents: write  # 创建release和上传资源
+  packages: write  # 管理package
+  actions: write   # 更新action状态
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v3
@@ -22,12 +30,12 @@ jobs:
 
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v2  # 更稳定的release action
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
           body: |
             Automated release for version ${{ github.ref_name }}
             
@@ -35,13 +43,13 @@ jobs:
             - Built binary: udpserver
           draft: false
           prerelease: false
+          files: |
+            udpserver
 
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./udpserver
-          asset_name: udpserver-${{ github.ref_name }}
-          asset_content_type: application/octet-stream
+      - name: Verify Release
+        if: always()
+        run: |
+          if [ "${{ steps.create_release.outputs.url }}" = "" ]; then
+            echo "::error::Failed to create release"
+            exit 1
+          fi
