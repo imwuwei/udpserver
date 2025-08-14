@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/zh-five/xdaemon"
@@ -32,6 +33,11 @@ func handleUDPCommunication(conn *net.UDPConn, addr *net.UDPAddr, verbose bool) 
 	buffer := make([]byte, 1024)
 	n, clientAddr, err := conn.ReadFromUDP(buffer)
 	if err != nil {
+		// 忽略所有连接关闭相关的错误
+		if strings.Contains(err.Error(), "use of closed network connection") || err == net.ErrClosed {
+			return nil
+		}
+		
 		if verbose {
 			log.Printf("Error reading from UDP: %v", err)
 		}
