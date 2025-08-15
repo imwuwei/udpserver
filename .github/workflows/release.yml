@@ -26,7 +26,7 @@ jobs:
           go-version: '1.21'
 
       - name: Build
-        run: go build -o udpserver
+        run: CGO_ENABLED=0 go build -a -ldflags '-extldflags "-static"'
 
       - name: Create Release
         id: create_release
